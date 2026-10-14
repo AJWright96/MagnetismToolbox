@@ -9,4 +9,5 @@ description = "Toolbox of helper codes for magnetism measurements and MuMax simu
 requires-python = ">=3.10"
 
 [tool.setuptools.packages.find]
-include = ["*"]
+where = ["."]
+include = ["MagnetismToolbox"]
