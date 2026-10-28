@@ -101,7 +101,10 @@ def run_hysteresis(magnet, hmin, hmax, hstep,
                    equilibriation_method: RelaxMethod = "relax",
                    tolerance: float = 1e-6,
                    output_quantities: QuantityMap | None = None,
+                   output_scripts = None,
                    use_tqdm: bool = False,
+                   noise: float = 0.0,
+                   seed: int | None = None
                    ):
     """ Runs a hysteresis loop with DC fields.
     magnet: magnet to run the hysteresis on.
@@ -113,7 +116,12 @@ def run_hysteresis(magnet, hmin, hmax, hstep,
     field_direction ((3,) iterable): direction of applied dc field.
     equilibriation_method: Method to relax/minimize the magnet at each step
     output_quantities: Dictionary of values to output. Values should be callable.
+    output_scripts: Scripts to run at each field to produce some output, e.g. saving figures of the magnetisation
     use_tqdm (bool): Use tqdm progress bar
+    noise (float): std of a random perturbation added to each component of m before equilibrating at every
+                    field step (e.g. 0.01). Breaks symmetries so that instabilities such as stripe-domain
+                    nucleation are not missed by the minimizer. Default 0 (no perturbation).
+    seed (int): seed for the noise, for reproducible loops
     """
     # Check sensible inputs
     if len(field_direction) != 3 :
@@ -127,17 +135,28 @@ def run_hysteresis(magnet, hmin, hmax, hstep,
 
     # Setup arrays to hold output_quantities
     outputs = {}
+
+    # Create random number for noise
+    rng = np.random.default_rng(seed)
     
     # Run through fields
     field_iterator = enumerate(tqdm(fields)) if use_tqdm else enumerate(fields)
     for i, field_magnitude in field_iterator:
         # Apply field
         magnet.bias_magnetic_field = tuple(field_magnitude * component for component in field_direction)
+
+         # Perturb the magnetisation so the minimizer can leave unstable symmetric states
+        if noise > 0:
+            m = magnet.magnetization.eval()
+            m = m + noise * rng.standard_normal(m.shape)
+            magnet.magnetization = m / np.linalg.norm(m, axis=0)
+
+
         # Equilibriate
         _equilibrate(magnet, equilibriation_method, tolerance)
 
         # Store output values
-        for key, getter in output_quantities.items():
+        for key, getter in (output_quantities or {}).items():
             # Execute the callable quantity at the current state. Store it as an ndarray
             value = np.asarray(getter())
 
@@ -148,6 +167,9 @@ def run_hysteresis(magnet, hmin, hmax, hstep,
             
             # Store the value
             outputs[key][i] = value
+
+        for key, script in (output_scripts or {}).items():
+                script()
 
     return outputs
 
