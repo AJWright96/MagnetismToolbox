@@ -7,6 +7,16 @@ name = "MagnetismToolbox"
 version = "0.1.0"
 description = "Toolbox of helper codes for magnetism measurements and MuMax simulations"
 requires-python = ">=3.10"
+dependencies = [
+    "numpy",
+    "scipy",
+    "pandas",
+    "matplotlib",
+]
+
+[project.optional-dependencies]
+# mumaxplus_helpers also needs mumaxplus itself, which must be built/installed separately (CUDA)
+mumaxplus = ["tqdm"]
 
 [tool.setuptools.packages.find]
 where = ["."]

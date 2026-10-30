@@ -1,0 +1,14 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+
+# Build / install artefacts
+*.egg-info/
+build/
+dist/
+
+# Editor / OS
+.vscode/
+.ipynb_checkpoints/
+Thumbs.db
+desktop.ini
